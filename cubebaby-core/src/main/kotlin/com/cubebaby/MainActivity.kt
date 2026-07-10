@@ -42,6 +42,12 @@ class MainActivity : AppCompatActivity() {
             log("Vendor : ${cube.vendorId}")
             log("Product: ${cube.productId}")
             log("Interfaces: ${cube.interfaceCount}")
+            val manager = getSystemService(USB_SERVICE) as android.hardware.usb.UsbManager
+
+val connector = UsbConnectionManager(manager)
+
+log("")
+log(connector.connect(cube))
 
         }
 
