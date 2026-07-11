@@ -1,5 +1,6 @@
 package com.cubebaby
 
+import android.content.IntentFilter
 import android.os.Bundle
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -7,54 +8,73 @@ import androidx.appcompat.app.AppCompatActivity
 class MainActivity : AppCompatActivity() {
 
     private lateinit var output: TextView
+    private lateinit var usbReceiver: UsbPermissionReceiver
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        output = TextView(this)
-        output.textSize = 14f
-        output.setPadding(24,24,24,24)
+        output = TextView(this).apply {
+            textSize = 14f
+            setPadding(24, 24, 24, 24)
+        }
 
         setContentView(output)
 
         log("CubeBaby Tools")
-        log("====================")
+        log("========================")
+        log("Version 0.1")
         log("")
 
-        val scanner = UsbScanner(this)
+        // Receiver que será chamado quando o usuário responder
+        // ao pedido de permissão USB.
+        usbReceiver = UsbPermissionReceiver(
 
-        log("Scanning USB devices...")
-        log("")
+            onGranted = {
 
-        log(scanner.dumpDevices())
+                runOnUiThread {
 
-        val cube = scanner.findCubeBaby()
+                    log("")
+                    log("USB permission GRANTED")
+                    log("")
 
-        if (cube == null) {
+                    UsbController(this, ::log).connect()
 
-            log("")
-            log("Cube Baby NOT FOUND")
+                }
 
-        } else {
+            },
 
-            log("")
-            log("Cube Baby FOUND")
-            log("Vendor : ${cube.vendorId}")
-            log("Product: ${cube.productId}")
-            log("Interfaces: ${cube.interfaceCount}")
-            val manager = getSystemService(USB_SERVICE) as android.hardware.usb.UsbManager
+            onDenied = {
 
-val connector = UsbConnectionManager(manager)
+                runOnUiThread {
 
-log("")
-log(connector.connect(cube))
+                    log("")
+                    log("USB permission DENIED")
 
-        }
+                }
+
+            }
+
+        )
+
+        registerReceiver(
+            usbReceiver,
+            IntentFilter(UsbPermissionManager.ACTION_USB_PERMISSION)
+        )
+
+        // Inicia o fluxo da aplicação
+        UsbController(this, ::log).connect()
 
     }
 
-    private fun log(msg: String) {
-        output.append(msg + "\n")
+    override fun onDestroy() {
+        super.onDestroy()
+
+        unregisterReceiver(usbReceiver)
+    }
+
+    private fun log(message: String) {
+        output.append(message)
+        output.append("\n")
     }
 
 }
